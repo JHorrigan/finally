@@ -101,3 +101,68 @@ class TestPriceCache:
         cache = PriceCache()
         update = cache.update("AAPL", 190.12345)
         assert update.price == 190.12
+
+    def test_concurrent_writes_are_safe(self):
+        """Test that concurrent writes from multiple threads do not corrupt state."""
+        import threading
+
+        cache = PriceCache()
+        errors: list[Exception] = []
+
+        def writer(ticker: str, start_price: float, iterations: int) -> None:
+            try:
+                for i in range(iterations):
+                    cache.update(ticker, start_price + i * 0.01)
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [
+            threading.Thread(target=writer, args=(f"T{i}", 100.0 + i, 500))
+            for i in range(8)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread errors: {errors}"
+        assert len(cache) == 8
+
+    def test_concurrent_read_write_safe(self):
+        """Test that concurrent reads and writes do not deadlock or corrupt data."""
+        import time
+        import threading
+
+        cache = PriceCache()
+        cache.update("AAPL", 190.00)
+        stop_flag = threading.Event()
+        errors: list[Exception] = []
+
+        def writer() -> None:
+            price = 190.00
+            while not stop_flag.is_set():
+                price += 0.01
+                cache.update("AAPL", price)
+
+        def reader() -> None:
+            while not stop_flag.is_set():
+                try:
+                    cache.get_all()
+                    cache.get("AAPL")
+                    _ = cache.version
+                except Exception as exc:
+                    errors.append(exc)
+
+        threads: list[threading.Thread] = [threading.Thread(target=writer)] + [
+            threading.Thread(target=reader) for _ in range(4)
+        ]
+        for t in threads:
+            t.start()
+
+        time.sleep(0.1)
+        stop_flag.set()
+
+        for t in threads:
+            t.join(timeout=2.0)
+
+        assert not errors, f"Thread errors: {errors}"
