@@ -66,7 +66,7 @@ The user runs a single Docker command (or a provided start script). A browser op
 - **Backend**: FastAPI (Python), managed as a `uv` project
 - **Database**: SQLite, single file at `db/finally.db`, volume-mounted for persistence
 - **Real-time data**: Server-Sent Events (SSE) — simpler than WebSockets, one-way server→client push, works everywhere
-- **AI integration**: OpenAI Python SDK → `gpt-4o-mini` (`gpt-5-nano` when available), with structured outputs for trade execution
+- **AI integration**: OpenAI Python SDK → `gpt-4o-mini`, with structured outputs for trade execution
 - **Market data**: Environment-variable driven — simulator by default, real data via Massive API if key provided
 
 ### Why These Choices
@@ -281,7 +281,7 @@ All tables include a `user_id` column defaulting to `"default"`. This is hardcod
 
 ## 9. LLM Integration
 
-Use the OpenAI Python SDK to call `gpt-5-nano` directly. Use Structured Outputs to parse the response. The `OPENAI_API_KEY` is provided in the `.env` file.
+Use the OpenAI Python SDK to call `gpt-4o-mini` directly. Use Structured Outputs to parse the response. The `OPENAI_API_KEY` is provided in the `.env` file.
 
 ### How It Works
 
